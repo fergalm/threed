@@ -1,9 +1,5 @@
 
-1. Fix toPixel() transform
-    1. Camera has a platescale
-    1. Backend gives screen size in pixel
-    1. Mpl Backend sets size appropriately
-    
+   
 1. Camera can 
     1. track (yes)
     1. tilt
@@ -13,7 +9,9 @@
 1. Culling of facets that don't need to be plotted
     1. Off screen
     2. Pointing away from camera
-    3. Hidden by other facets (does this make 2 unecessary?)
+        1. Still useful to do this even if doing step 3?
+    3. Hidden by other facets 
+        
 4. Draw Apollo service module, TIE fight winger
 5. Lightsources
 
@@ -36,6 +34,8 @@ renderScene(scene)
     srt = np.argsort(zdist)[::-1]
     facetList = pixelList[srt]
     propList = propList[srt]
+    
+    #Culling of facets goes here
     
     for i in rangel(len(facetList):
         plotFacet(facetList[i], propList[i])
