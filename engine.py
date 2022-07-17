@@ -54,6 +54,7 @@ class Engine():
         #Zdist acutally distance along x axis
         tpoints = self.transform(points, loc, attitude)
         img_plane_coords = self.project(tpoints)
+        pixels = self.transform_to_pixels(img_plane_coords)
         zdist = compute_zdist(tpoints, facets)
 
         srt = np.argsort(zdist)[::-1]
@@ -63,7 +64,7 @@ class Engine():
 
             j = srt[i] 
             fac = facets[j]
-            corners = img_plane_coords[fac]
+            corners = pixels[fac]
             clr = obj.colours[j]
             # wireframe(corners, clr)
             self.backend.patch(corners, clr)
@@ -72,8 +73,7 @@ class Engine():
             self.backend.mark_centroids(corners, zdist[j], clr)
 
         #Doesn't belong here, but helpful for debuggin
-        ang = img_plane_coords
-        plt.plot(ang[-1,0], ang[-1,1], 'mo')
+        plt.plot(pixels[-1,0], pixels[-1,1], 'mo')
 
     def renderScene(self, scene:list):
         raise NotImplementedError()
@@ -138,9 +138,19 @@ class Engine():
         # idebug()
         return out
 
-    def transform_to_device_coords(self, ang):
+    def transform_to_pixels(self, ang):
         """Transform angular values to pixel values"""
-        return np.dot(ang, np.eye(2)) 
+        # return np.dot(ang, np.eye(2)) 
+
+        col0 = self.backend.ncols / 2
+        row0 = self.backend.nrows / 2
+        offset = np.array([col0, row0]).reshape(1, 2)
+
+        ps = self.camera.platescale_arcsecPerPixel
+        relpix = np.degrees(ang) * 3600 / ps
+        abspix = relpix + offset
+        return abspix
+
 
 
 

@@ -1,8 +1,14 @@
 
-1. New Repo  
-2. New classes
-3. Split off render from transformer
-1. Camera can move, tilt, pan, roll
+1. Fix toPixel() transform
+    1. Camera has a platescale
+    1. Backend gives screen size in pixel
+    1. Mpl Backend sets size appropriately
+    
+1. Camera can 
+    1. track (yes)
+    1. tilt
+    1. pan
+    1. roll
 1. Render Scene, not just a single object
 1. Culling of facets that don't need to be plotted
     1. Off screen

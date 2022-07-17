@@ -10,6 +10,10 @@ class Backend():
     3. Pass in properties, not just colour
     """
 
+    def __init__(self, ncols, nrows):
+        self.ncols = ncols 
+        self.nrows = nrows 
+        
     def wireframe(self, vertices, clr):
         """Plot object in wireframe
         

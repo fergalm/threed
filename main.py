@@ -35,10 +35,10 @@ def interact():
 
 
 def main():
-    obj = sprite.Pyramid()
-    camera = Camera()
-    backend = MplBackend()
+    camera = Camera(5e+2)
+    backend = MplBackend(800, 600)
     engine = Engine(camera, backend)
+    obj = sprite.Pyramid()
 
     plt.clf()
     i = 0
@@ -48,12 +48,14 @@ def main():
         plt.cla()
 
         obj.setAttitude_rad( np.radians([0,0,i]))
+        # camera.pos = np.array([0, 0, 4-i/8, 1])
         # obj.pos = [1 + .01*i, 0, -1 + .01*i]
         engine.renderSingleSprite(obj)
 
         tpi =  .5
         # plt.axis('equal')
-        plt.axis([-tpi, tpi, -tpi, tpi])
+        plt.axis([0, 800, 0, 600])
+        # plt.axis([-tpi, tpi, -tpi, tpi])
         # plt.axis([2, 10, -4, 4])
         # plt.axis([3, 7, -6, 6])
         plt.title(i)
