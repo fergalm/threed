@@ -1,4 +1,17 @@
 
+1. New Repo  
+2. New classes
+3. Split off render from transformer
+1. Camera can move, tilt, pan, roll
+1. Render Scene, not just a single object
+1. Culling of facets that don't need to be plotted
+    1. Off screen
+    2. Pointing away from camera
+    3. Hidden by other facets (does this make 2 unecessary?)
+4. Draw Apollo service module, TIE fight winger
+5. Lightsources
+
+
 My idea for rendering multiple scenes 
 ```
 renderScene(scene)

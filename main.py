@@ -2,15 +2,17 @@ import matplotlib.pyplot as plt
 from ipdb import set_trace as idebug
 import numpy as np
 
+from backend import MplBackend
+from engine import Engine
 from camera import Camera
-from sprite import Sprite
+import sprite
 
 
 
 
 def interact():
     obj = Sprite()
-    camera = Camera()
+    camera = Camera(MplBackend())
 
     i = 827
     plt.clf()
@@ -18,7 +20,7 @@ def interact():
     while True:
         plt.cla()
         obj.setAttitude_rad( np.radians([i, 0, 0]))
-        camera.renderShape(obj)
+        camera.renderSingleSprite(obj)
 
         plt.plot([0,1], [0,1], 'k-')
         # plt.axis([-2,2,-2,2])
@@ -33,8 +35,10 @@ def interact():
 
 
 def main():
-    obj = Sprite()
+    obj = sprite.Pyramid()
     camera = Camera()
+    backend = MplBackend()
+    engine = Engine(camera, backend)
 
     plt.clf()
     i = 0
@@ -43,11 +47,9 @@ def main():
     # for i in [199]:
         plt.cla()
 
-        obj.setAttitude_rad( np.radians([i, i, 0]))
-        val = camera.renderShape(obj)
-        if val == 1:
-            return 
-        # camera.renderEnvelope(obj)
+        obj.setAttitude_rad( np.radians([0,0,i]))
+        # obj.pos = [1 + .01*i, 0, -1 + .01*i]
+        engine.renderSingleSprite(obj)
 
         tpi =  .5
         # plt.axis('equal')
