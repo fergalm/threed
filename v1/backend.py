@@ -13,7 +13,7 @@ class Backend():
     def __init__(self, ncols, nrows):
         self.ncols = ncols 
         self.nrows = nrows 
-        
+
     def wireframe(self, vertices, clr):
         """Plot object in wireframe
         
@@ -64,8 +64,10 @@ class MplBackend(Backend):
 
 
     def patch(self, vertices, clr):
-        patch = plt.Polygon(vertices, color=clr, ec='k')
+        patch = plt.Polygon(vertices, color=clr, ec='k', lw=.1)
+        # patch = plt.Polygon(vertices, color=clr)
         plt.gca().add_patch(patch)
+        pass
 
 
     def mark_centroids(self, vertices, zdist, clr):

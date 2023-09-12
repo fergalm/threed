@@ -8,6 +8,7 @@ class Sprite(Element):
     def __init__(self, pos, attitude):
         self.pos = pos 
         self.attitude = attitude
+        self.colours = None 
 
 
     def getEnvelope(self):

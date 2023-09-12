@@ -1,22 +1,33 @@
 
    
+1. Draw Apollo service module, TIE fight winger
+1. Render Scene, not just a single object
 1. Camera can 
     1. track (yes)
     1. tilt
     1. pan
     1. roll
-1. Render Scene, not just a single object
 1. Culling of facets that don't need to be plotted
     1. Off screen
+    3. Hidden by other facets 
     2. Pointing away from camera
         1. Still useful to do this even if doing step 3?
-    3. Hidden by other facets 
-        
-4. Draw Apollo service module, TIE fight winger
+    
 5. Lightsources
 
 
-My idea for rendering multiple scenes 
+### Keyboard control
+wasd  dolly forward back, truck left right, 
+WS pedestal up down
+
+Arrows for tilt and pan. Shift [<-], [->] to roll 
+
+Of course, all of these have to be relative to current orientation!
+
+[z], [x] zoom out/in (adjust camera platescale)
+
+### Multiple scenes 
+
 ```
 renderScene(scene)
 
@@ -42,12 +53,13 @@ renderScene(scene)
             
 ```
 
+#### Culling 
 For a subsequent version.
-* 
+*
 * Create a bounding box for each facet in pixel space
 * starting with the most distant object, 
     * Create intersection with edge of screen
     * find all closer objects whose bboxes overlap
     * Create union of those objects
-    * Create intersection_complement(obj, union) 
-    * Render that complement
+    * If union.contains(facet)
+        * remove

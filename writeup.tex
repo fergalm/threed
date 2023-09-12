@@ -1,0 +1,162 @@
+
+\documentclass[12pt]{article}
+
+% \usepackage{amssymb}
+\usepackage[usenames,dvipsnames,svgnames]{xcolor}
+% % \usepackage{lscape} % for landscape figures/tables
+\usepackage{amsmath, mathrsfs,amsfonts,amssymb}
+\usepackage{relsize}
+\usepackage{graphicx}
+% \usepackage[width=.9\columnwidth, font=sf]{caption}
+\usepackage[font=sf]{caption}
+
+% \usepackage{amsfonts}
+% \usepackage{calc}
+% \usepackage{url}
+% \urlstyle{sf}
+
+%For debugginghttp://blog.thehackerati.com/post/126701202241/eigenstyle
+\definecolor{darkgreen}{rgb}{0,.5,0}
+\newcommand{\chk}{ \textcolor{darkgreen}{{\tt (Check this)}}}
+\newfont{\nf}{cmfib8 at 10pt}
+\newcommand{\note}[1]{ \textcolor{blue}{ {\nf #1}}}
+
+
+\newcommand{\dlee}[2]{\ensuremath{\frac{\partial #1}{\partial #2}}}
+\renewcommand{\vec}[1]{\ensuremath{\mathbf{\bar{#1}}}}
+\newcommand{\mat}[1]{\ensuremath{\mathbf{\bar{\bar{#1}}}}}
+
+
+%Define date in to be YYYY-MM-DD
+\def\mydate{\leavevmode\hbox{\the\year-\twodigits\month-\twodigits\day}}
+\def\twodigits#1{\ifnum#1<10 0\fi\the#1}
+
+\oddsidemargin=.025in
+\textwidth=6.4in
+
+\begin{document}
+\begin{center}
+{\Large {\bf A 3D Graphics Engine}}
+\end{center}
+
+\setlength{\parskip}{1.5ex plus0.5ex minus0.2ex}
+
+In this tutorial we will build a simple 3D graphics engine. It will allow us to track, pan, and tilt a camera while following an object as it moves, twists, and turns. Understanding simple matix operations is a pre-requsite for following this tutorial.
+
+Let us start by defining a coorinate system. Let $\hat{x}$ be the direction in which we are looking, $\hat{y}$ is perpedicular to $\hat{x}$ and pointing to the right, while $\hat{z}$
+is perpedicular to both, and pointing straight up.
+
+
+Next, define the corners of a simple shape. The simplest 3D shape is a pyramid with a triangular base. The vertices of this pyramid are 
+
+$$
+\begin{pmatrix}x \\ y \\ z \\ 1 \end{pmatrix} = 
+\begin{pmatrix}-0.5 \\ 0 \\ 0 \\ 1 \end{pmatrix},
+\begin{pmatrix}0 \\ 0.5 \\ 0 \\ 1 \end{pmatrix},
+\begin{pmatrix}+0.5 \\ 0 \\ 0 \\ 1 \end{pmatrix},
+\begin{pmatrix}0 \\ 0.5 \\ .5 \\ 1 \end{pmatrix}
+$$
+
+
+We call these the body coordinates, and represent the coordinates of those points if the centre of the pyramid is at the origin of the coordinates. Note that even though our space is three-dimensional, we make all our coordinates 4 dimensional, with the 4th coefficient always set to 1. The reason for this will make sense soon enough.
+
+We will refer to these points with the variables \vec{b_i}, and the set of coordinates as \mat{B}.
+
+\subsection{Projection, First Attempt}
+Our pyramid is a three dimensional object, but we need to project it onto a two-dimensional screen for display. We will call these 2D coordinates the projected coordinates, and label them as $\hat{h}$ for the horizontal coordinate, and $\hat{v}$ for the vertical coordinate. We will define the origin of the projected coordinate system as the centre of the screen. More coordinate systems will follow. 
+
+As a first pass at projection, we will choose a sterographic projection\chk. We will assume the camera is looking in the positive $\hat{x}$ direction, and we will set 
+
+$$
+\begin{pmatrix}h \\v \end{pmatrix} = 
+\begin{pmatrix}y \\ z \end{pmatrix} 
+$$
+
+As a projection system, it leaves something to be desired. Objects look the same no matter how far away from the camera. Physically, this corresponds to looking at a scene from a great distance away. For example, the moon doesn't look any bigger when you climb to the top of step ladder. But our camera is at the origin, and so, for the moment, is our pyramid. We will construct a better projection system later on, but this one suffices for now.
+
+The projected coordinates of our pyramid are easy to compute.
+
+
+
+\subsection{Moving objects}
+Let's start moving our pyramid around. First we will move the object away from the camera, and then in other directions. To move an object away from the camera by an amount $\Delta x$, we need to increase the values of the x-coordinates. We could do so with a loop, but instead we choose to use matrices. The {\it transformed} coordinates of  the object, \vec{t}$_i$ after increasing the x values are 
+
+$$
+\vec{t}_i = 
+\begin{pmatrix}
+1 & 0 & 0 & \Delta x \\ 
+0 & 1 & 0 & 0 \\ 
+0 & 0 & 1 & 0 \\ 
+0 & 0 & 0 & 1 \\ 
+\end{pmatrix}
+\begin{pmatrix}x_i \\ y_i \\ z_i \\ 1 \end{pmatrix} 
+$$
+
+The use of the 4th coordinate reveals itself as a way to make translating a point using matrices. The value of using matrices will become clearer in due time. 
+
+To translate an object in all three dimensions we only need to generalise this matrix 
+
+$$
+\vec{t}_i = 
+\begin{pmatrix}
+1 & 0 & 0 & \Delta x \\ 
+0 & 1 & 0 & \Delta y \\ 
+0 & 0 & 1 & \Delta z \\ 
+0 & 0 & 0 & 1 \\ 
+\end{pmatrix}
+\begin{pmatrix}x_i \\ y_i \\ z_i \\ 1 \end{pmatrix} 
+$$
+
+or 
+
+$$
+\vec{t}_i = \mat{T} \vec{b}_i
+$$
+
+
+\subsection{Rotations}
+
+
+\subsection{Order of operations}
+The order of operation that we apply these matrices is important. We must first rotate, then translate the body coordinates. If we translate first then we end up rotating the the object in an arc around the origin, rather than just rotating the direction the object faces. So
+
+$$
+\vec{t}_i = \mat{T} \mat{R} \vec{b}_i
+$$
+
+
+\section{The camera}
+\subsection{Translation of the camera}
+\subsection{Tilting and Panning the camera}
+
+\section{A better projection}
+
+
+\section{Solid objects}
+
+
+\section{Optimisations}
+1. Clipping on screen boundaires
+2. Front and back plane clipping
+3. Shadowing
+
+\section{Not covered}
+Ray tracing and lighting effects
+
+% \begin{figure}[hbt]
+% \begin{center}
+% \includegraphics[scale=.4]{towson}
+% \end{center}
+% \vspace{-2cm}
+% \caption{The catchment area of Towson High School (red solid line) includes parts of no fewer than 4 councilmanic districts. This dilutes the voice of parents when they try to organise to advocate for the school.}
+% \end{figure}
+
+
+
+
+
+
+
+
+\end{document}
+

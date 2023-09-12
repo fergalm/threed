@@ -66,14 +66,13 @@ class Engine():
             fac = facets[j]
             corners = pixels[fac]
             clr = obj.colours[j]
-            # wireframe(corners, clr)
+            # self.backend.wireframe(corners, 'k')
             self.backend.patch(corners, clr)
-            
-            # mark_centroids(c2, zdist[j], clr)
-            self.backend.mark_centroids(corners, zdist[j], clr)
+            # self.backend.mark_centroids(corners, zdist[j], clr)
 
         #Doesn't belong here, but helpful for debuggin
-        plt.plot(pixels[-1,0], pixels[-1,1], 'mo')
+        # plt.plot(pixels[-1,0], pixels[-1,1], 'mo')
+        # plt.plot(pixels[:,0], pixels[:,1], 'mo')
 
     def renderScene(self, scene:list):
         raise NotImplementedError()
@@ -122,20 +121,11 @@ class Engine():
     def project(self, points):
         """project onto image plane"""
 
-        # # return points[:, 1:3]
-
-        # alpha_rad = points[:,2] / (points[:,0] + 0)
-        # beta_rad = points[:,1] / (points[:,0] + 0)
-
+        # return points[:, [2,1]]
 
         alpha_rad = np.arctan2(points[:,2], points[:,0])
         beta_rad = np.arctan2(points[:,1], points[:,0]) 
-
         out = np.vstack([alpha_rad, beta_rad]).transpose()
-        # print(points) #[:, 1:3])
-        # print(out)
-        # print(np.degrees(out))
-        # idebug()
         return out
 
     def transform_to_pixels(self, ang):
