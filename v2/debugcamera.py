@@ -6,38 +6,8 @@ import numpy as np
 
 import camera 
 import thing 
+import shade
 
-class ThingViewer:
-    def __init__(self, th:thing.Thing, cam: camera.Camera):
-        self.th = th 
-        self.cam = cam 
-
-    #@profile
-    def show(self):
-        pix_coords = self.cam.computePixelCoordsForThing(self.th)
-
-        self.plot_view(pix_coords)
-        plt.xlabel("col")
-        plt.ylabel("row")
-
-
-    #   @profile
-    def plot_view(self, pix_coords):
-        #TODO Make a get polygon function 
-        col, row = 0, 1
-        # plt.plot(pix_coords[:,col], pix_coords[:,row], 'ko')
-
-        #Each facet should get it's own segment. This is close enough
-        segments = pix_coords[self.th.edges].reshape(-1, 1, 4)[:,:, :2].reshape(-1, 2)
-
-        from  matplotlib.collections import LineCollection
-        coll = LineCollection([segments], colors='k')
-        plt.gca().add_collection(coll)
-
-
-
-class DummyLens:
-    pass 
 
 import render 
 import readobj 
@@ -49,9 +19,9 @@ def main():
     cam = camera.Camera(camera.BaseLens(), 400, 400, 40)
     # renderer = render.WireframeMplRender()
     renderer = render.PolygonMplRender()
+    shader = shade.AmbientLightShader()
 
 
-    viewer = ThingViewer(th, cam)
 
     ang = np.radians(40)
     th.state = [40,0,0, 0, np.pi/4, -3*np.pi/4]
@@ -71,23 +41,37 @@ def main():
 
     plt.clf()
     i = 0
+    #The world.py loop
     while True :
+        #Move object and camera 
         # th.state[-1] += np.radians(4)
         th.state[-1] += np.radians(2)
 
         ang =  np.radians(30) * np.sin(2*np.pi*i/200.)
         # th.state[-2] = ang
         cam.state[0] = 10 * np.sin(2*np.pi*i/100)
+
+        
         plt.clf()
         t0 = time.time()
+        #Compute relevant coordinates for thing for this camera
         pix_coords = cam.computePixelCoordsForThing(th)
+        normals = cam.computeNormalsForThing(th)  #in camera's coord system
 
-        #Filter on zmin/zmax 
-        #Filter on col row outside of screen
-        #Filter on normal vector direction
-        #Filter on polygon size 
+        # if cam.isOffScreen(pix_coords):
+        #     continue 
 
-        renderer.paint(th, pix_coords)
+        #Filter polygons to just the ones we want to render
+        idx = np.ones(len(pix_coords), dtype=bool)
+        idx &= cam.polyIsOnScreen(cam, pix_coords)
+        idx &= polyFacesCamera(normals)
+        idx &= polyIsLargeEnoughToRender(pix_coords)
+        if np.sum(idx) == 0:
+            continue 
+        
+        #Display the displayable polygons
+        colours = shader.shade(th, pix_coords, normals, idx)
+        renderer.paint(pix_coords[idx], th.edges[idx], colours)
 
         plt.axis([0, cam.ncols, 0, cam.nrows])
         print(1/(time.time() - t0))
@@ -95,6 +79,24 @@ def main():
         # return
         
         i += 1
+
+
+def polyFacesCamera(cam, normals):
+    mat = cam.getAttitudeVector()
+    costheta = np.dot(normals, mat)
+    return costheta < 0
+
+    return np.ones(len(normals), dtype=bool)
+
+def polyIsLargeEnoughToRender(pix_coords):
+    cmin = pix_coords[:, :, 0].min(axis=1)
+    cmax = pix_coords[:, :, 0].max(axis=1)
+    rmin = pix_coords[:, :, 0].min(axis=1)
+    rmax = pix_coords[:, :, 0].max(axis=1)
+
+    minAreaToRender_pix = 2  #TODO: make this an argument?
+    area = (cmax - cmin) * (rmax - rmin)
+    return area > minAreaToRender_pix
 
 
 if __name__ == "__main__":

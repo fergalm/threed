@@ -31,6 +31,16 @@ class Camera:
         self.state = np.array([0,0,0, 0,0,0], dtype=float)
 
 
+    def computeNormalsForThing(self, th:Thing):
+        localToWorld = th.getLocalToWorldMat()
+        worldToView = self.getWorldToViewMat()
+        mat = np.dot(localToWorld, worldToView)
+
+        #Trim off w coord. Not needed for normals 
+        mat = mat[:3, :3]
+        normals = np.dot(th.norms, mat)
+        return normals 
+    
     def computePixelCoordsForThing(self, th:Thing):
         localToWorld = th.getLocalToWorldMat()
         worldToView = self.getWorldToViewMat()
@@ -45,6 +55,15 @@ class Camera:
         screen_coords_pix = self.convertAngularToScreenCoords(ang_coords_rad)
         return screen_coords_pix
 
+    def getAtitudeVector(self):
+        """Get the unit vector pointing toward centre of FOV in world coords
+        
+        Note: This explicitly assumes camera is pointing along +ve x-axis
+        in local coordinates
+        """
+        mat = self.WorldToRelMat()
+        vec = np.array([1,0,0,0])
+        return np.dot(vec, mat)
 
     def getWorldToViewMat(self):
         mat1 = self.getWorldToRelMat()
@@ -132,6 +151,42 @@ class Camera:
         out[:,2] = ang_coords_rad[:,2]
         return out 
 
+    # def thingIsOffScreen(self, pix_coords):
+    #     """I'm not sure this is needed if we also filter by polygon below"""
+    #     colMin, colMax = pix_coords[:,:,0]
+    #     rowMin, rowMax = pix_coords[:,:,1]
+    #     zMin, zMax     = pix_coords[:,:,2]
+
+    #     #If we straddle the min/max zranges, we are off screen
+    #     if zMin <= self.minDistToRender or zMax >= self.maxDistToRender:
+    #         return True 
+        
+    #     #If we straddle screen edges we are onscreen, at least partially
+    #     if colMax < 0 or colMin > self.nCols:
+    #         return True 
+
+    #     if rowMax < 0 or rowMin > self.nRows:
+    #         return True 
+        
+    #     return False 
+
+    def filterPolyForOnScreen(self, pix_coords):
+        cmin = pix_coords[:, :, 0].min(axis=1)
+        cmax = pix_coords[:, :, 0].max(axis=1)
+        rmin = pix_coords[:, :, 0].min(axis=1)
+        rmax = pix_coords[:, :, 0].max(axis=1)
+        zmin = pix_coords[:, :, 2].min(axis=1)
+        zmax = pix_coords[:, :, 2].max(axis=1)
+        assert cmin.ndim == 1
+        assert len(cmin) == len(pix_coords)
+
+        idx = cmax > 0 and cmin < self.nCols
+        idx &= rmax > 0 and rmin < self.nRows
+        idx &= zmin > self.minDistToRender and zmax < self.maxDistToRender
+        return idx 
+
+
+        return np.ones(len(pix_coords), dtype=bool)
 
 
 

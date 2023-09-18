@@ -32,20 +32,16 @@ def lmap(function, *array):
 
 
 class PolygonMplRender(AbstractRender):
-    def paint(self, th:thing.Thing, pix_coords):
+    def paint(self, pix_coords, edges, colours)
 
-        #TODO
-        #Filter on norm pointing toward camera
-        idx = np.ones(len(th.edges), dtype=bool)
-
-        polys = pix_coords[th.edges[idx]]
+        polys = pix_coords[edges]
 
         
         #Painter's algorithm. Sort in decreasing zorder
         zorder = polys[:,:,2].mean(axis=1)
         srt = np.argsort(zorder)[::-1]
         polys = polys[srt, :,:]
-        colours = th.colours[srt]
+        colours = colours[srt]
 
         #Reshape to a list of arrays for PolyCollection
         polys = lmap(lambda x: x.reshape(-1, 4), polys)
@@ -55,6 +51,3 @@ class PolygonMplRender(AbstractRender):
 
         plt.gca().add_collection(coll)
         plt.plot([0,1], [0,1], 'k-')
-        plt.axis('equal')
-
-
