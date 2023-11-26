@@ -14,7 +14,7 @@ def test_camera_smoke():
     th = makeBoxThing()
     th.state[1] = 10
 
-    cam =  camera.Camera(DummyLens())
+    cam =  camera.Camera() 
     cam.state = np.array([0,0,0, 0,0,0])
 
     localToWorld = th.getLocalToWorldMat()
@@ -35,7 +35,7 @@ def test_track_camera_inout():
 
     th.state[0] = 10  #Put the thing 10 points in front of camera
 
-    cam =  camera.Camera(DummyLens())
+    cam =  camera.Camera() 
     cam.state = np.array([0,0,0, 0,0,0])
 
     localToWorld = th.getLocalToWorldMat()
@@ -56,10 +56,9 @@ def test_track_camera_leftright():
     """
     
     th = makeBoxThing()
-
     th.state[1] = 10  #Put the thing 10 points in front of camera
 
-    cam =  camera.Camera(DummyLens())
+    cam =  camera.Camera() 
     cam.state = np.array([0,0,0, 0,0,0])
 
     localToWorld = th.getLocalToWorldMat()
@@ -84,7 +83,7 @@ def test_track_camera_updown():
 
     th.state[2] = 10  #Put the thing 10 points in front of camera
 
-    cam =  camera.Camera(DummyLens())
+    cam =  camera.Camera() 
     cam.state = np.array([0,0,0, 0,0,0])
 
     localToWorld = th.getLocalToWorldMat()
@@ -101,22 +100,24 @@ def test_track_camera_updown():
 def test_camera_pan():
     th = makeBoxThing()
 
-    ang10 = np.radians(60)
+    ang = np.radians(60)
     th.state[0] = 10
     
-    cam =  camera.Camera(DummyLens())
-    cam.state = np.array([0,0,0, 0,ang10, 0])
+    cam =  camera.Camera() 
+    cam.state = np.array([0,0,0, 0, 0,ang])
 
     localToWorld = th.getLocalToWorldMat()
     worldToRel = cam.getWorldToRelMat()
-    mat = np.dot(localToWorld, worldToRel)
-    print(mat)
-    relcoords = np.dot(th.vertices, mat)
+    # mat = np.dot(localToWorld, worldToRel)
+    # relcoords = np.dot(th.vertices, mat)
+    mat = localToWorld @ worldToRel
+    relcoords = th.vertices @ mat
 
+    #In relcoords
     #X value decrease
     #y values go negative 
     #z values untouched
-    assert np.all((relcoords[:,0] >= 5) & (relcoords[:,0] < 6))
+    assert np.all((relcoords[:,0] >= 5) & (relcoords[:,0] < 6)), relcoords[:,0]
     assert np.all(relcoords[:,1] < -8)
     assert np.allclose(relcoords[:,2], th.vertices[:,2] )
 
@@ -127,8 +128,8 @@ def test_camera_tilt():
     ang10 = np.radians(10)
     th.state[0] = 10
     
-    cam =  camera.Camera(DummyLens())
-    cam.state = np.array([0,0,0, 0, 0, ang10])
+    cam =  camera.Camera() 
+    cam.state = np.array([0,0,0, 0, ang10, 0])
 
     localToWorld = th.getLocalToWorldMat()
     worldToRel = cam.getWorldToRelMat()
@@ -150,7 +151,7 @@ def test_camera_roll():
     ang10 = np.radians(60)
     th.state[0] = 10
     
-    cam =  camera.Camera(DummyLens())
+    cam =  camera.Camera() 
     cam.state = np.array([0,0,0, ang10, 0, 0])
 
     localToWorld = th.getLocalToWorldMat()
@@ -176,12 +177,12 @@ def test_world_to_view_coords():
     th = makeBoxThing()
     th.state[0] = 10  #Put the thing 10 points in front of camera
 
-    cam =  camera.Camera(DummyLens())
-    cam.state = np.array([0,0,0, 0,0,0])
+    cam =  camera.Camera() 
+    cam.state = np.array([0,0,0, 0,0,0])  #Camera at origin
 
     mat1 = th.getLocalToWorldMat()
     mat2 = cam.getWorldToViewMat()
-    mat = np.dot(mat1, mat2)
+    mat = mat1 @ mat2
 
     print(th.vertices)
     print(np.dot(th.vertices, mat1))

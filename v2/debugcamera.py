@@ -16,9 +16,12 @@ def main():
     # th = thing.make_example_thing()
     fn = "../data/models_resources/Xwing_0_0.obj"
     th = readobj.read_points(fn)
-    cam = camera.Camera(camera.BaseLens(), 400, 400, 40)
+    bbox = camera.Bbox(0, 0, 400, 400)
+    cam = camera.Camera(camera.BaseLens(), bbox, 40)
+    renderer = render.WireframeMplRender()
+    # renderer = render.PolygonMplRender()
     # renderer = render.WireframeMplRender()
-    renderer = render.PolygonMplRender()
+    # renderer = render.PointCloudMplRender()
     shader = shade.AmbientLightShader()
 
 
@@ -26,18 +29,21 @@ def main():
     ang = np.radians(40)
     th.state = [40,0,0, 0, np.pi/4, -3*np.pi/4]
     # th.state = [40,0,0, 0, 0,0]
+    cam.state[0] = -100 #-np.pi/4.
     # cam.state = np.array([0,0,0, ang, 0, 0])  #Rotates wrong way?
     # cam.state = np.array([0,0,0, 0, -ang, 0])  #Rotates wrong way?
     # cam.state = np.array([0,0,0, 0, 0, ang])  #Rotates right way?
 
     # Draw once    
-    # plt.clf()
-    # pix_coords = cam.computePixelCoordsForThing(th)
-    # renderer.paint(th, pix_coords)
-    # plt.axis([0, cam.ncols, 0, cam.nrows])
+    plt.clf()
+    pix_coords = cam.computePixelCoordsForThing(th)
+    polys = pix_coords[th.edges]
+    renderer.paint(polys, th.colours)
+    plt.axis([0, cam.ncols, 0, cam.nrows])
 
-    # plt.xlim(0,400)
-    # plt.ylim(0,400)
+    plt.xlim(0,400)
+    plt.ylim(0,400)
+    return 
 
     plt.clf()
     i = 0
@@ -56,24 +62,24 @@ def main():
         t0 = time.time()
         #Compute relevant coordinates for thing for this camera
         pix_coords = cam.computePixelCoordsForThing(th)
+        edges = th.edges
         normals = cam.computeNormalsForThing(th)  #in camera's coord system
-
-        # if cam.isOffScreen(pix_coords):
-        #     continue 
+        polys = pix_coords[edges]
 
         #Filter polygons to just the ones we want to render
-        idx = np.ones(len(pix_coords), dtype=bool)
-        idx &= cam.polyIsOnScreen(cam, pix_coords)
-        idx &= polyFacesCamera(normals)
-        idx &= polyIsLargeEnoughToRender(pix_coords)
+        idx = np.ones(len(polys), dtype=bool)
+        idx &= cam.filterPolyForOnScreen(polys)
+        # idx &= polyFacesCamera(cam, normals)
+        idx &= polyIsLargeEnoughToRender(polys)
         if np.sum(idx) == 0:
             continue 
         
         #Display the displayable polygons
         colours = shader.shade(th, pix_coords, normals, idx)
-        renderer.paint(pix_coords[idx], th.edges[idx], colours)
+        renderer.paint(polys[idx], colours)
 
         plt.axis([0, cam.ncols, 0, cam.nrows])
+        # plt.axis('scaled')
         print(1/(time.time() - t0))
         plt.pause(.01)
         # return
@@ -82,11 +88,10 @@ def main():
 
 
 def polyFacesCamera(cam, normals):
-    mat = cam.getAttitudeVector()
-    costheta = np.dot(normals, mat)
+    attitude = cam.getAttitudeVector()[:3]
+    costheta = np.dot(normals, attitude)
     return costheta < 0
 
-    return np.ones(len(normals), dtype=bool)
 
 def polyIsLargeEnoughToRender(pix_coords):
     cmin = pix_coords[:, :, 0].min(axis=1)

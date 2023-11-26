@@ -1,14 +1,24 @@
 
 
 class Body to encode and manipulate state 
-A Lens class
+x A Lens class
     Understand focal length, fisheye lens, telephoto lens etc.
-Camera class should make sure ncols, nrows, fov are always consistent
-Renders
-    PointCloud
-    WireFrame
-    FillPolygon 
+x Camera class should make sure ncols, nrows, fov are always consistent
+x Renders
+    x PointCloud 
+    x WireFrame
+    x FillPolygon 
 
-Lighting 
+x Lighting 
+    x Ambient Light shader 
+    o Single infinite source shader
+    o A way of combining shaders 
 
-Read in the xwing file
+x Read in the xwing file
+x 3d model 
+
+o Light source combination. .5*Ambient + .5 * InfinitePointSource(vec)
+o A zbuffer
+O I have 2 bbox classes. I need to merge them
+
+

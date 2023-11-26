@@ -11,6 +11,7 @@ def read_points(fn):
 
     points = []
     edges = []
+    normals = []
     with open(fn) as fp:
         while True:
             line = fp.readline()
@@ -28,9 +29,14 @@ def read_points(fn):
                 if len(values) == 3:
                     values.append(values[0])
                 edges.append(values)
+            if line[:2] == 'vn':
+                words = line.split()
+                values = list(map(float, words[1:]))
+                normals.append(values)                
 
     points = np.array(points)
     edges = np.array(edges) - 1
+    normals = np.array(normals)
     out = np.zeros((len(points), 4))
     
     #Transpose so x-wing points toward +x
@@ -53,7 +59,7 @@ def read_points(fn):
 
     # clrs = np.array(['r'] * len(edges))
     th = Thing(out, edges, clrs)
-
+    # th.norms = normals 
     return th 
 
 

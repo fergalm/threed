@@ -56,16 +56,19 @@ def main():
     th = thing.make_example_thing()
 
     viewer = ThingViewer(th)
+    viewer.show()
+    print(th.norms)
 
-    plt.clf()
-    i = 0
-    while True:
-        th.state[-1] = np.radians(i)
-        th.state[-3] = np.radians(i)
-        th.state[0] = 2 * np.sin(2 * np.pi * i/40)
-        plt.clf()
-        t0 = time.time()
-        viewer.show()
-        print(1/(time.time() - t0 - .1))
-        plt.pause(.1)
-        i += 1
+
+    # plt.clf()
+    # i = 0
+    # while True:
+    #     th.state[-1] = np.radians(i)
+    #     th.state[-3] = np.radians(i)
+    #     th.state[0] = 2 * np.sin(2 * np.pi * i/40)
+    #     plt.clf()
+    #     t0 = time.time()
+    #     viewer.show()
+    #     print(1/(time.time() - t0 - .1))
+    #     plt.pause(.1)
+    #     i += 1

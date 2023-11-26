@@ -50,7 +50,7 @@ class Thing:
 
         self.norms = self._computeNorms()
 
-        #state is x, y, z, rho, theta, phi 
+        #state is x, y, z, rho, theta, phi (roll, tilt, pan)
         self.state = np.array([0,0,0, 0, 0 ,0], dtype=float)
         self.velocity = np.array([0,0,0, 0, 0 ,0], dtype=float)
 
@@ -58,8 +58,13 @@ class Thing:
         assert len(colours) == len(edges)
         self.colours = colours
 
+    def advance(self, dt):
+        self.state += self.velocity * dt 
+
     def getPolygons(self):
         #I love that this is so easy to express
+        #It's not very useful because typically you want the 
+        #transformed polygons, not the ones in local space
         return self.vertices[self.edges]
     
     # def getNormInWorldCoords(self):
@@ -103,9 +108,13 @@ class Thing:
         xmat = tf.rotateAboutX(rho)
         tmat = tf.translateMat(self.state[:3])
         mat = np.eye(4)
-        mat = np.dot(mat, zmat)
-        mat = np.dot(mat, ymat)
+        # mat = np.dot(mat, zmat)
+        # mat = np.dot(mat, ymat)
+        # mat = np.dot(mat, xmat)
+        # mat = np.dot(mat, tmat)
         mat = np.dot(mat, xmat)
+        mat = np.dot(mat, ymat)
+        mat = np.dot(mat, zmat)
         mat = np.dot(mat, tmat)
         return mat 
     
@@ -122,10 +131,10 @@ def make_example_thing():
 
     edges = np.array(
         [
-            [0,1,2],
+            [0,2,1],
             [0,1,3],
             [1,2,3],
-            [0,2,3],
+            [0,3,2],
         ],
         dtype=np.int16
     )
