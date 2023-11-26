@@ -14,40 +14,116 @@ Screen Coords on the screen. Units are pixels. (0,0) at top left
 
 """
 
-class Camera:
-    def __init__(self, lens, ncols, nrows, horz_fov_degrees):
+class Bbox:
+    def __init__(self, hoffset, woffset, height, width):
+        self.hoffset = hoffset 
+        self.woffset = woffset 
+        self.height = height 
+        self.width = width 
+
+    @classmethod
+    def from_coords(col1, col2, row1, row2):
+        hoffset = col1 
+        woffset = row1
+        height = row2 - row1 
+        width = col2 - col1 
+        return Bbox(hoffset, woffset, height, width)
+
+    def get_coords(self):
+        c1 = self.hoffset 
+        r1 = self.woffset 
+        c2 = c1 + self.width 
+        r2 = r1 + self.height 
+        return c1, c2, r1, r2
+
+
+#TODO: Should I specify platescale instead of fov?
+class Detector(Bbox):
+    def __init__(self, hoffset, woffset, height, width, horz_fov_degrees):
+        Bbox.__init__(self, hoffset, woffset, height, width)
+        self.horz_fov_degrees = horz_fov_degrees
+
+    @classmethod 
+    def from_coords(col1, col2, row1, row2, horz_fov_degrees):
+        det = Bbox.from_coords( col1, col2, row1, row2)
+        det.horz_fov_degrees = horz_fov_degrees 
+        return det 
+
+
+
+
+class BaseLens:
+    """Converts view coords to angular coordinates 
+    """
+
+    def getAngularCoords_rad(self, vertices):
+        """Convert view coordinates to screen coordinaes in pixels
+
+        The only physical lens I can think of right now.
+        
+        """
+        out = np.empty_like(vertices)
+
+        horz = vertices[:,0] / vertices[:,2]
+        out[:,0] = np.arctan(horz)
+
+        vert = vertices[:,1] / vertices[:,2]
+        out[:,1] = np.arctan(vert)
+        out[:,2] = vertices[:,2]
+        return out 
+    
+
+
+class BaseCamera:
+    def __init__(self, lens:BaseLens, detector:Detector):
         self.lens = lens 
         
         #TODO
         #nols, nrows is probably going to be set equal to the
         #screen size. If the screen size changes, these
         #should update
-        self.ncols = ncols 
-        self.nrows = nrows 
-        self.horizontal_fov_rad = np.radians(horz_fov_degrees)
+        self.col0 = detector.woffset
+        self.row0 = detector.hoffset
+        self.ncols = detector.width
+        self.nrows = detector.height
+        self.horizontal_fov_rad = np.radians(detector.horz_fov_degrees)
         # self.vertical_fov_rad = self.horizontal_fov_rad * nrows / ncols 
-        self.plate_scale_rad_per_pixel = self.horizontal_fov_rad / float(ncols)
+        self.plate_scale_rad_per_pixel = self.horizontal_fov_rad / float(self.ncols)
 
         self.state = np.array([0,0,0, 0,0,0], dtype=float)
+
+        self.minDistToRender = 1 
+        self.maxDistToRender = 1000
+
+    def getFrame(self):
+        left = self.col0 
+        right = left + self.ncols 
+        top = self.row0 
+        bottom = top + self.nrows 
+        return [left, right, bottom, top]
 
 
     def computeNormalsForThing(self, th:Thing):
         localToWorld = th.getLocalToWorldMat()
         worldToView = self.getWorldToViewMat()
-        mat = np.dot(localToWorld, worldToView)
+        mat = localToWorld @ worldToView
+        mat = localToWorld
 
         #Trim off w coord. Not needed for normals 
         mat = mat[:3, :3]
-        normals = np.dot(th.norms, mat)
+        # normals = np.dot(th.norms, mat)
+        normals = th.norms @ mat
         return normals 
     
     def computePixelCoordsForThing(self, th:Thing):
         localToWorld = th.getLocalToWorldMat()
         worldToView = self.getWorldToViewMat()
-        mat = np.dot(localToWorld, worldToView)
+        # mat = np.dot(localToWorld, worldToView)
+        mat = localToWorld @ worldToView
 
         #Compute transformation matrix from local to view coords
-        view_coords = np.dot(th.vertices, mat)
+        # view_coords = np.dot(th.vertices, mat)
+        view_coords = th.vertices @ mat
 
         #USe lens to covert view coords to degrees and distance 
         ang_coords_rad = self.lens.getAngularCoords_rad(view_coords)
@@ -55,26 +131,37 @@ class Camera:
         screen_coords_pix = self.convertAngularToScreenCoords(ang_coords_rad)
         return screen_coords_pix
 
-    def getAtitudeVector(self):
+    def getAttitudeVector(self):
         """Get the unit vector pointing toward centre of FOV in world coords
         
         Note: This explicitly assumes camera is pointing along +ve x-axis
         in local coordinates
         """
-        mat = self.WorldToRelMat()
+        mat = self.getWorldToRelMat()
         vec = np.array([1,0,0,0])
-        return np.dot(vec, mat)
+        return vec @ mat
+        # return np.dot(vec, mat)
 
     def getWorldToViewMat(self):
+        """
+        The the transformation matrix from world coordinates to
+        view coordinates, i.e coordaintes relative to the imaging plane. The convention is
+        that the camera is looking along the x-axis, with z pointing "up"
+        """
         mat1 = self.getWorldToRelMat()
         mat2 = self.getRelToViewCoords()
-        return np.dot(mat1, mat2)
+        return mat1 @ mat2
     
     def getWorldToRelMat(self):
         """
-        The the transformation matrix from world coordinates to
-        coordinates relative to the camera. The convention is
-        that the camera is looking along the x-axis, with z pointing "up"
+        Get the matrix that transforms world coordinates to relativate coordinates
+        (i.e coordinates relative to the camera).
+
+        In the abscence of any rotation of the camera, this matrix
+        just subtracts the camera coordinates from the Thing coordinates.
+        If the camera has been rotated, the impact of that rotation
+        is also taken into account (e.g if the camera is pointed "backwards"
+        it can see "behind" itself. 
 
         Notes
         ------
@@ -97,16 +184,16 @@ class Camera:
         ymat = tf.rotateAboutY(theta)
         xmat = tf.rotateAboutX(rho)
         tmat = tf.translateMat([x, y, z])
-        # idebug()
-        mat = np.eye(4)
-        mat = np.dot(mat, tmat)
-        mat = np.dot(mat, xmat)
-        mat = np.dot(mat, ymat)
-        mat = np.dot(mat, zmat)
+        mat = tmat @ xmat @ ymat @ zmat 
         return mat 
 
     def getRelToViewCoords(self):
         """
+        Create a matrix that converts relative coordinates to view coordinates.
+
+        Relative coords are the position of the Thing relative to the camera,
+        view coordinates are those relative to the imaging plane. 
+
         Convention is that camera lens points in +x direction with +z
         corresponding to up, and +y to left. This matrix converts
         those coordinates to (horzizontal, vertical, and distance)
@@ -141,9 +228,11 @@ class Camera:
         """
         col_pix = ang_coords_rad[:,0] / self.plate_scale_rad_per_pixel
         col_pix += .5 * self.ncols
+        col_pix += self.col0
 
         row_pix = .5 * self.nrows 
         row_pix -= ang_coords_rad[:,1] / self.plate_scale_rad_per_pixel
+        row_pix += self.row0 
 
         out = np.empty_like(ang_coords_rad)
         out[:,0] = col_pix 
@@ -170,43 +259,30 @@ class Camera:
         
     #     return False 
 
-    def filterPolyForOnScreen(self, pix_coords):
-        cmin = pix_coords[:, :, 0].min(axis=1)
-        cmax = pix_coords[:, :, 0].max(axis=1)
-        rmin = pix_coords[:, :, 0].min(axis=1)
-        rmax = pix_coords[:, :, 0].max(axis=1)
-        zmin = pix_coords[:, :, 2].min(axis=1)
-        zmax = pix_coords[:, :, 2].max(axis=1)
-        assert cmin.ndim == 1
-        assert len(cmin) == len(pix_coords)
+    def filterPolyForOnScreen(self, poly_coords):
+        assert poly_coords.ndim == 3 
 
-        idx = cmax > 0 and cmin < self.nCols
-        idx &= rmax > 0 and rmin < self.nRows
-        idx &= zmin > self.minDistToRender and zmax < self.maxDistToRender
+        cmin = poly_coords[:, :, 0].min(axis=1)
+        cmax = poly_coords[:, :, 0].max(axis=1)
+        rmin = poly_coords[:, :, 1].min(axis=1)
+        rmax = poly_coords[:, :, 1].max(axis=1)
+        zmin = poly_coords[:, :, 2].min(axis=1)
+        zmax = poly_coords[:, :, 2].max(axis=1)
+        assert cmin.ndim == 1
+        assert len(cmin) == len(poly_coords)
+
+        idx =  (cmax > 0) & (cmin < self.ncols)
+        idx &= (rmax > 0) & (rmin < self.nrows)
+        idx &= (zmin > self.minDistToRender) & (zmax < self.maxDistToRender)
         return idx 
 
 
-        return np.ones(len(pix_coords), dtype=bool)
 
 
 
-class BaseLens:
-    """Converts view coords to angular coordinates 
-    """
-
-    def getAngularCoords_rad(self, vertices):
-        """Convert view coordinates to screen coordinaes in pixels
-
-        The only physical lens I can think of right now.
-        
-        """
-        out = np.empty_like(vertices)
-
-        horz = vertices[:,0] / vertices[:,2]
-        out[:,0] = np.arctan(horz)
-
-        vert = vertices[:,1] / vertices[:,2]
-        out[:,1] = np.arctan(vert)
-        out[:,2] = vertices[:,2]
-        return out 
-    
+class Camera(BaseCamera):
+    """A default camera, with reasonable settings"""
+    def __init__(self):
+        lens  = BaseLens()
+        detector = Detector(0,0, 800, 600, 3600)
+        BaseCamera.__init__(self, lens, detector)
