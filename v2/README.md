@@ -86,3 +86,10 @@ Note that because matrix multiplication is not commutative, pre-multiplying by a
 ```
 transform_matrix @ original_coords #  DON'T DO THIS!
 ```
+
+
+### Developing
+* Using numpy to do coordinate transformations 
+* Ultimately will use pygame as the 2d graphics engine, getting by just fine with matplotlib so far.
+* Using pytest for units tests
+* Use `pdoc` to build documentation. `pdoc v2 -o html`
