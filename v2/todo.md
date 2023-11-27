@@ -17,6 +17,7 @@ x Lighting
 x Read in the xwing file
 x 3d model 
 
+o Camera, lens and detector should be separate modules 
 o Light source combination. .5*Ambient + .5 * InfinitePointSource(vec)
 o A zbuffer
 O I have 2 bbox classes. I need to merge them

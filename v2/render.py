@@ -4,7 +4,7 @@ from ipdb import set_trace as idebug
 import matplotlib.pyplot as plt 
 import numpy as np 
 
-import thing 
+from . import thing 
 
 def lmap(function, *array):
     return list(map(function, *array))

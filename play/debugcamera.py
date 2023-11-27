@@ -1,17 +1,15 @@
 
 from ipdb import set_trace as idebug
 import matplotlib.pyplot as plt 
-import transforms as tf
 import numpy as np 
-
-import camera 
-import thing 
-import shade
-
-
-import render 
-import readobj 
 import time
+
+from . import readobj 
+from . import camera 
+from . import shade
+from . import render 
+
+
 def main():
     # th = thing.make_example_thing()
     fn = "../data/models_resources/Xwing_0_0.obj"

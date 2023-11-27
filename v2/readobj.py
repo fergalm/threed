@@ -2,7 +2,7 @@ from ipdb import set_trace as idebug
 import matplotlib.pyplot as plt 
 import numpy as np 
 
-from thing import Thing 
+from .thing import Thing 
 
 def read_points(fn):
     """This only works on the xwing file 'til I figure out 

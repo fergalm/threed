@@ -1,7 +1,11 @@
 from ipdb import set_trace as idebug
-from thing import Thing 
+
 import numpy as np 
-import transforms as tf 
+
+from . import transforms as tf 
+from .detector import Detector
+from .lens import BaseLens 
+from .thing import Thing 
 
 """
 Local Coordinates of vertices relative to centre of object 
@@ -14,74 +18,26 @@ Screen Coords on the screen. Units are pixels. (0,0) at top left
 
 """
 
-class Bbox:
-    def __init__(self, hoffset, woffset, height, width):
-        self.hoffset = hoffset 
-        self.woffset = woffset 
-        self.height = height 
-        self.width = width 
 
-    @classmethod
-    def from_coords(col1, col2, row1, row2):
-        hoffset = col1 
-        woffset = row1
-        height = row2 - row1 
-        width = col2 - col1 
-        return Bbox(hoffset, woffset, height, width)
-
-    def get_coords(self):
-        c1 = self.hoffset 
-        r1 = self.woffset 
-        c2 = c1 + self.width 
-        r2 = r1 + self.height 
-        return c1, c2, r1, r2
-
-
-#TODO: Should I specify platescale instead of fov?
-class Detector(Bbox):
-    def __init__(self, hoffset, woffset, height, width, horz_fov_degrees):
-        Bbox.__init__(self, hoffset, woffset, height, width)
-        self.horz_fov_degrees = horz_fov_degrees
-
-    @classmethod 
-    def from_coords(col1, col2, row1, row2, horz_fov_degrees):
-        det = Bbox.from_coords( col1, col2, row1, row2)
-        det.horz_fov_degrees = horz_fov_degrees 
-        return det 
-
-
-
-
-class BaseLens:
-    """Converts view coords to angular coordinates 
-    """
-
-    def getAngularCoords_rad(self, vertices):
-        """Convert view coordinates to screen coordinaes in pixels
-
-        The only physical lens I can think of right now.
-        
-        """
-        out = np.empty_like(vertices)
-
-        horz = vertices[:,0] / vertices[:,2]
-        out[:,0] = np.arctan(horz)
-
-        vert = vertices[:,1] / vertices[:,2]
-        out[:,1] = np.arctan(vert)
-        out[:,2] = vertices[:,2]
-        return out 
     
 
 
 class BaseCamera:
+    """
+    The camera maps the location of a Thing from world coordinates to screen coordinates
+
+    The class itself converts from world coordinates to relative coordinates,
+    then passes the rest of the job to the lens and detector.
+
+    Although this class exposes a lot of its implementation for inspection,
+    the only two public functions you should be using outside of debugging are 
+
+    * `computePixelCoordsForThing()`
+    * `computeNormalsForThing()`
+    """
     def __init__(self, lens:BaseLens, detector:Detector):
         self.lens = lens 
         
-        #TODO
-        #nols, nrows is probably going to be set equal to the
-        #screen size. If the screen size changes, these
-        #should update
         self.col0 = detector.woffset
         self.row0 = detector.hoffset
         self.ncols = detector.width
@@ -93,17 +49,33 @@ class BaseCamera:
         self.state = np.array([0,0,0, 0,0,0], dtype=float)
 
         self.minDistToRender = 1 
+        """Don't render objects tha are too close to the camera"""
         self.maxDistToRender = 1000
+        """Don't render objects too far away from the camera"""
 
-    def getFrame(self):
-        left = self.col0 
-        right = left + self.ncols 
-        top = self.row0 
-        bottom = top + self.nrows 
-        return [left, right, bottom, top]
+    # def getFrame(self):
+    #     left = self.col0 
+    #     right = left + self.ncols 
+    #     top = self.row0 
+    #     bottom = top + self.nrows 
+    #     return [left, right, bottom, top]
 
 
     def computeNormalsForThing(self, th:Thing):
+        """Compute the normal vectors for the facets of a Thing in World coordinates
+
+        Inputs
+        ------------
+        * th
+            * A single Thing object 
+        
+            
+        Returns 
+        ---------
+        A `n x 3` array, where `n` is the number of facets in the Thing. The columns
+        represent the x, y, and z components of the normal vectors
+        """
+
         localToWorld = th.getLocalToWorldMat()
         worldToView = self.getWorldToViewMat()
         mat = localToWorld @ worldToView
@@ -116,6 +88,19 @@ class BaseCamera:
         return normals 
     
     def computePixelCoordsForThing(self, th:Thing):
+        """Compute screen coordinates of the vertices of a Thing
+
+        Inputs
+        ------------
+        * th
+            * A single Thing object 
+
+        Returns
+        ----------
+        An `n x 3` array of coordinates, where `n` is the number of vertices in the
+        Thing. Units are pixels. The columns are col, row, and distance 
+
+        """
         localToWorld = th.getLocalToWorldMat()
         worldToView = self.getWorldToViewMat()
         # mat = np.dot(localToWorld, worldToView)
@@ -134,19 +119,28 @@ class BaseCamera:
     def getAttitudeVector(self):
         """Get the unit vector pointing toward centre of FOV in world coords
         
-        Note: This explicitly assumes camera is pointing along +ve x-axis
+        Returns
+        ------------
+        A `1 x 4` array of coordinates 
+
+        Note
+        -------
+        This explicitly assumes camera is pointing along +ve x-axis
         in local coordinates
         """
         mat = self.getWorldToRelMat()
         vec = np.array([1,0,0,0])
         return vec @ mat
-        # return np.dot(vec, mat)
 
     def getWorldToViewMat(self):
         """
         The the transformation matrix from world coordinates to
         view coordinates, i.e coordaintes relative to the imaging plane. The convention is
         that the camera is looking along the x-axis, with z pointing "up"
+
+        Returns
+        ---------
+        A `4 x 4` matrix
         """
         mat1 = self.getWorldToRelMat()
         mat2 = self.getRelToViewCoords()
@@ -175,7 +169,7 @@ class BaseCamera:
         
         Returns
         ---------
-        A 4x4 matrix
+        A `4 x 4` matrix
         """
 
         x, y, z, rho, theta, phi = -1 * self.state 
@@ -199,9 +193,14 @@ class BaseCamera:
         those coordinates to (horzizontal, vertical, and distance)
         coordinates.
 
-        Horizontal == -y 
-        Vertical == +z 
-        Distance == +x 
+        * Horizontal == -y 
+        * Vertical == +z 
+        * Distance == +x 
+
+        Returns
+        ---------
+        A `4 x 4` matrix
+
         """
 
         mat = np.zeros((4,4))
@@ -225,6 +224,19 @@ class BaseCamera:
 
         Note that the resulting screen coords need not be on
         the screen. Some additional filtering might be required
+
+        Inputs
+        --------
+        ang_coords_rad 
+            An `n x 3` array, where `n` is the number of vertices,
+            and the columns are horizontal distance (radians),
+            verticle distance (radians), and distance along the 
+            line of sight. 
+            
+        Returns
+        ---------
+        An `n x 3` array, where `n == len(ang_coords_rad)`
+        
         """
         col_pix = ang_coords_rad[:,0] / self.plate_scale_rad_per_pixel
         col_pix += .5 * self.ncols
@@ -240,26 +252,19 @@ class BaseCamera:
         out[:,2] = ang_coords_rad[:,2]
         return out 
 
-    # def thingIsOffScreen(self, pix_coords):
-    #     """I'm not sure this is needed if we also filter by polygon below"""
-    #     colMin, colMax = pix_coords[:,:,0]
-    #     rowMin, rowMax = pix_coords[:,:,1]
-    #     zMin, zMax     = pix_coords[:,:,2]
-
-    #     #If we straddle the min/max zranges, we are off screen
-    #     if zMin <= self.minDistToRender or zMax >= self.maxDistToRender:
-    #         return True 
-        
-    #     #If we straddle screen edges we are onscreen, at least partially
-    #     if colMax < 0 or colMin > self.nCols:
-    #         return True 
-
-    #     if rowMax < 0 or rowMin > self.nRows:
-    #         return True 
-        
-    #     return False 
-
     def filterPolyForOnScreen(self, poly_coords):
+        """Check which polygons are on-screen
+
+
+        Inputs
+        -----------
+
+        
+                TODO
+        -----
+        Should this belong to the detetor class?
+
+        """
         assert poly_coords.ndim == 3 
 
         cmin = poly_coords[:, :, 0].min(axis=1)

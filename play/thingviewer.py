@@ -1,10 +1,10 @@
 
 from ipdb import set_trace as idebug
 import matplotlib.pyplot as plt 
-import transforms as tf
 import numpy as np 
 
-import thing 
+from . import transforms as tf
+from . import thing 
 
 class ThingViewer:
     def __init__(self, th:thing.Thing):
